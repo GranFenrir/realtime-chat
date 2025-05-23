@@ -8,8 +8,24 @@ async function bootstrap() {
       origin: 'http://localhost:3000',
       methods: ['GET', 'POST'],
     });
-    await app.listen(3003); 
-    console.log('Server is running on http://localhost:3003');
+
+    // Add proper shutdown handlers
+    const server = await app.listen(3006);
+    console.log('Server is running on http://localhost:3006');
+    
+    // Handle graceful shutdown
+    process.on('SIGINT', async () => {
+      console.log('Received SIGINT signal. Shutting down gracefully...');
+      await server.close();
+      process.exit(0);
+    });
+    
+    process.on('SIGTERM', async () => {
+      console.log('Received SIGTERM signal. Shutting down gracefully...');
+      await server.close();
+      process.exit(0);
+    });
+    
   } catch (error) {
     console.error('Failed to start server:', error.message);
     process.exit(1);

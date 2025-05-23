@@ -8,7 +8,7 @@ interface ChatMessage {
   timestamp: number;
 }
 
-@WebSocketGateway(3003, {
+@WebSocketGateway({
   cors: {
     origin: 'http://localhost:3000',
     methods: ['GET', 'POST'],

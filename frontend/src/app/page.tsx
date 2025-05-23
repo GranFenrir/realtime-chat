@@ -26,7 +26,7 @@ export default function Home() {
     }
     
     try {
-      const newSocket = io('http://localhost:3003', { 
+      const newSocket = io('http://localhost:3006', { 
         reconnection: true,
         reconnectionAttempts: 5,
         transports: ['websocket', 'polling']

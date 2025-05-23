@@ -1,6 +1,6 @@
 import { io } from 'socket.io-client';
 
-const socket = io('http://localhost:3003');
+const socket = io('http://localhost:3006');
 
 // Test message
 const testMessage = {

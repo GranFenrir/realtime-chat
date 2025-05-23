@@ -1,8 +1,24 @@
 {
+  "name": "realtime-chat",
+  "version": "1.0.0",
+  "description": "Realtime Chat Application",
+  "scripts": {
+    "backend": "cd backend && npm run start:dev",
+    "frontend": "cd frontend && npm run dev",
+    "dev": "npm-run-all --parallel backend frontend",
+    "start": "npm-run-all --parallel backend:prod frontend:prod",
+    "backend:prod": "cd backend && npm run start:prod",
+    "frontend:prod": "cd frontend && npm run start",
+    "kill-ports": "kill-port 3000 3006 || true"
+  },
   "dependencies": {
     "@mantine/core": "^7.16.1",
     "@mantine/hooks": "^7.16.1",
     "dayjs": "^1.11.13",
     "socket.io-client": "^4.8.1"
+  },
+  "devDependencies": {
+    "kill-port": "^2.0.1",
+    "npm-run-all": "^4.1.5"
   }
 }
