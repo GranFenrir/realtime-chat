@@ -4,14 +4,20 @@ import { AppModule } from './app.module';
 async function bootstrap() {
   try {
     const app = await NestFactory.create(AppModule);
+    
+    // Environment variables
+    const port = process.env.PORT || 3006;
+    const corsOrigin = process.env.CORS_ORIGIN || 'http://localhost:3000';
+    
     app.enableCors({
-      origin: 'http://localhost:3000',
+      origin: corsOrigin,
       methods: ['GET', 'POST'],
     });
 
     // Add proper shutdown handlers
-    const server = await app.listen(3006);
-    console.log('Server is running on http://localhost:3006');
+    const server = await app.listen(port);
+    console.log(`🚀 Server is running on http://localhost:${port}`);
+    console.log(`🔗 CORS enabled for: ${corsOrigin}`);
     
     // Handle graceful shutdown
     process.on('SIGINT', async () => {
