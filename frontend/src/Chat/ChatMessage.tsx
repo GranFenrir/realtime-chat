@@ -11,10 +11,12 @@ dayjs.locale('tr');
 
 interface Message {
   id: string;
-  text: string;
+  text?: string;
   userId: string;
   username: string;
   timestamp: number;
+  imageUrl?: string;
+  imageData?: string;
 }
 
 interface ChatMessageProps {
@@ -78,9 +80,31 @@ export function ChatMessage({ message, isOwnMessage }: ChatMessageProps) {
           </Group>
         )}
         
-        <Text size="md" style={{ wordBreak: 'break-word' }}>
-          {message.text}
-        </Text>
+        {(message.imageData || message.imageUrl) && (
+          <Box mb="xs">
+            <img 
+              src={message.imageData || message.imageUrl} 
+              alt="Shared image"
+              style={{
+                maxWidth: '100%',
+                maxHeight: '300px',
+                borderRadius: '8px',
+                objectFit: 'contain',
+                cursor: 'pointer'
+              }}
+              onClick={() => {
+                // Open image in new tab
+                window.open(message.imageData || message.imageUrl, '_blank');
+              }}
+            />
+          </Box>
+        )}
+        
+        {message.text && (
+          <Text size="md" style={{ wordBreak: 'break-word' }}>
+            {message.text}
+          </Text>
+        )}
         
         <Text size="xs" c="dimmed" mt={4} ta={isOwnMessage ? 'right' : 'left'}>
           {getTimeDisplay()}

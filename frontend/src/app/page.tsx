@@ -11,10 +11,12 @@ import { v4 as uuidv4 } from 'uuid';
 
 interface Message {
   id: string;
-  text: string;
+  text?: string;
   userId: string;
   username: string; // Kullanıcı adı eklendi
   timestamp: number;
+  imageUrl?: string;
+  imageData?: string;
 }
 
 // LocalStorage'dan userId ve username al veya oluştur
@@ -143,6 +145,30 @@ export default function Home() {
 
       newSocket.on('onlineUsers', handleOnlineUsers);
 
+      // Username change listener - Diğer kullanıcıların isim değişikliğini dinle
+      const handleUsernameChanged = (data: { userId: string; newUsername: string }) => {
+        console.log('👤 Kullanıcı adı değişti:', data);
+        // Mesajlardaki bu kullanıcının tüm username'lerini güncelle
+        setMessages(prevMessages =>
+          prevMessages.map(msg =>
+            msg.userId === data.userId
+              ? { ...msg, username: data.newUsername }
+              : msg
+          )
+        );
+        
+        // Online users listesini güncelle
+        setOnlineUsers(prevUsers =>
+          prevUsers.map(user =>
+            user.userId === data.userId
+              ? { ...user, username: data.newUsername }
+              : user
+          )
+        );
+      };
+
+      newSocket.on('usernameChanged', handleUsernameChanged);
+
       // Error handler
       newSocket.on('connect_error', (err) => {
         console.error('🔴 Connection error:', err.message);
@@ -158,6 +184,7 @@ export default function Home() {
         newSocket.off('messageHistory', handleMessageHistory);
         newSocket.off('userTyping', handleUserTyping);
         newSocket.off('onlineUsers', handleOnlineUsers);
+        newSocket.off('usernameChanged', handleUsernameChanged);
         newSocket.off('connect_error');
         newSocket.close();
       };
@@ -187,6 +214,15 @@ export default function Home() {
     setUserInfo(updatedInfo);
     localStorage.setItem('chatUsername', newUsername);
     
+    // ESKİ mesajlardaki username'i güncelle (Yaklaşım 1)
+    setMessages(prevMessages => 
+      prevMessages.map(msg => 
+        msg.userId === userInfo.userId 
+          ? { ...msg, username: newUsername }
+          : msg
+      )
+    );
+    
     // Backend'e güncellemeyi bildir
     if (socket && isConnected) {
       socket.emit('userJoined', {
@@ -202,10 +238,10 @@ export default function Home() {
 
   return (
     <Container size="xl" style={{ height: '100vh', display: 'flex', flexDirection: 'column', paddingTop: '20px', paddingBottom: '20px' }}>
-      <Group align="flex-start" gap="md" style={{ flex: 1, minHeight: 0 }}>
+      <Group align="flex-start" gap="md" style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
         {/* Main Chat Area */}
-        <Paper shadow="md" p="md" style={{ flex: 1, display: 'flex', flexDirection: 'column', maxHeight: 'calc(100vh - 40px)' }}>
-        <Stack gap="md" style={{ flex: 1, minHeight: 0 }}>
+        <Paper shadow="md" p="md" style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', maxHeight: 'calc(100vh - 40px)' }}>
+        <Stack gap="md" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
           {/* Header */}
           <Box>
             <Group justify="space-between" align="center">
@@ -277,34 +313,49 @@ export default function Home() {
             </Box>
           )}
 
-          {/* Input Area */}
-          <ChatInput 
-            onSendMessageAction={(text) => {
-              if (socket && isConnected && userInfo.userId) {
-                const message: Message = {
-                  id: uuidv4(),
-                  text,
-                  userId: userInfo.userId,
-                  username: userInfo.username,
-                  timestamp: Date.now(),
-                };
-                // Mesajı backend'e gönder (backend tüm clientlara broadcast edecek)
-                socket.emit('message', message);
-                // Kendi mesajımızı da state'e ekleyelim (daha hızlı feedback)
-                // Backend'den gelen mesajda duplicate kontrolü var
-                setMessages(prev => [...prev, message]);
-              }
+          {/* Input Area - Sabit alt kısım */}
+          <Box 
+            style={{ 
+              borderTop: '1px solid #e0e0e0', 
+              paddingTop: '12px',
+              backgroundColor: 'var(--mantine-color-body)',
             }}
-            onTyping={(isTyping) => {
-              if (socket && isConnected && userInfo.userId) {
-                socket.emit('typing', {
-                  userId: userInfo.userId,
-                  username: userInfo.username,
-                  isTyping
-                });
-              }
-            }}
-          />
+          >
+            <ChatInput 
+              onSendMessageAction={(text, imageData) => {
+                if (socket && isConnected && userInfo.userId) {
+                  const message: Message = {
+                    id: uuidv4(),
+                    text: text || undefined,
+                    userId: userInfo.userId,
+                    username: userInfo.username,
+                    timestamp: Date.now(),
+                    imageData: imageData,
+                  };
+                  console.log('📤 Sending message:', {
+                    id: message.id,
+                    text: message.text,
+                    hasImage: !!message.imageData,
+                    imageSize: message.imageData?.length || 0
+                  });
+                  // Mesajı backend'e gönder (backend tüm clientlara broadcast edecek)
+                  socket.emit('message', message);
+                  // Kendi mesajımızı da state'e ekleyelim (daha hızlı feedback)
+                  // Backend'den gelen mesajda duplicate kontrolü var
+                  setMessages(prev => [...prev, message]);
+                }
+              }}
+              onTyping={(isTyping) => {
+                if (socket && isConnected && userInfo.userId) {
+                  socket.emit('typing', {
+                    userId: userInfo.userId,
+                    username: userInfo.username,
+                    isTyping
+                  });
+                }
+              }}
+            />
+          </Box>
         </Stack>
       </Paper>
 

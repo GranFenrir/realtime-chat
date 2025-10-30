@@ -1,15 +1,14 @@
-import { IsString, IsNotEmpty, MinLength, MaxLength, IsNumber, IsPositive } from 'class-validator';
+import { IsString, IsNotEmpty, MinLength, MaxLength, IsNumber, IsPositive, IsOptional } from 'class-validator';
 
 export class CreateMessageDto {
   @IsString()
   @IsNotEmpty()
   id: string;
 
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
-  @MinLength(1)
   @MaxLength(1000)
-  text: string;
+  text?: string;
 
   @IsString()
   @IsNotEmpty()
@@ -24,6 +23,14 @@ export class CreateMessageDto {
   @IsNumber()
   @IsPositive()
   timestamp: number;
+
+  @IsOptional()
+  @IsString()
+  imageUrl?: string;
+
+  @IsOptional()
+  @IsString()
+  imageData?: string;
 }
 
 export class TypingEventDto {

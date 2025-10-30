@@ -9,9 +9,13 @@ async function bootstrap() {
     const port = process.env.PORT || 3006;
     const corsOrigin = process.env.CORS_ORIGIN || 'http://localhost:3000';
     
+    // CORS origin'leri array'e çevir (virgülle ayrılmışsa)
+    const allowedOrigins = corsOrigin.split(',').map(origin => origin.trim());
+    
     app.enableCors({
-      origin: corsOrigin,
+      origin: allowedOrigins,
       methods: ['GET', 'POST'],
+      credentials: true,
     });
 
     // Add proper shutdown handlers

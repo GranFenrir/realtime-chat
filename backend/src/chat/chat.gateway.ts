@@ -5,17 +5,23 @@ import { CreateMessageDto, TypingEventDto, UserJoinedDto } from './dto/chat.dto'
 
 interface ChatMessage {
   id: string;
-  text: string;
+  text?: string;
   userId: string;
   username: string;
   timestamp: number;
+  imageUrl?: string;
+  imageData?: string;
 }
 
 @WebSocketGateway({
   cors: {
-    origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
+    origin: (process.env.CORS_ORIGIN || 'http://localhost:3000').split(',').map(o => o.trim()),
     methods: ['GET', 'POST'],
+    credentials: true,
   },
+  maxHttpBufferSize: 10e6, // 10MB - for image uploads
+  pingTimeout: 60000,
+  pingInterval: 25000,
 })
 export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
@@ -74,9 +80,25 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
   }
 
   @SubscribeMessage('message')
-  @UsePipes(new ValidationPipe({ transform: true }))
+  @UsePipes(new ValidationPipe({ 
+    transform: true,
+    whitelist: true,
+    forbidNonWhitelisted: false,
+    skipMissingProperties: false,
+    exceptionFactory: (errors) => {
+      console.error('❌ Validation errors:', JSON.stringify(errors, null, 2));
+      return new Error('Validation failed');
+    }
+  }))
   handleMessage(@MessageBody() data: CreateMessageDto): void {
-    console.log('📩 Mesaj alındı:', data);
+    console.log('📩 Mesaj alındı:', {
+      id: data.id,
+      text: data.text ? `${data.text.substring(0, 20)}...` : 'no text',
+      userId: data.userId,
+      username: data.username,
+      hasImage: !!data.imageData,
+      imageSize: data.imageData ? data.imageData.length : 0
+    });
     
     // Mesajı geçmişe ekle
     this.messageHistory.push(data);
@@ -106,12 +128,19 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
   ): void {
     console.log('👋 Kullanıcı katıldı:', data);
     
-    // Kullanıcıyı online listesine ekle
+    // Kullanıcıyı online listesine ekle veya güncelle
     this.onlineUsers.set(data.userId, {
       socketId: client.id,
       userId: data.userId,
       username: data.username
     });
+    
+    // Mesaj geçmişindeki bu kullanıcının tüm mesajlarını güncelle
+    this.messageHistory = this.messageHistory.map(msg => 
+      msg.userId === data.userId 
+        ? { ...msg, username: data.username }
+        : msg
+    );
     
     // Güncel kullanıcı listesini tüm clientlara gönder
     const userList = Array.from(this.onlineUsers.values()).map(u => ({
@@ -119,6 +148,13 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
       username: u.username
     }));
     this.server.emit('onlineUsers', userList);
+    
+    // Username değişikliğini tüm clientlara bildir (mesajları güncellemeleri için)
+    this.server.emit('usernameChanged', {
+      userId: data.userId,
+      newUsername: data.username
+    });
+    
     console.log(`👥 Online kullanıcı sayısı: ${this.onlineUsers.size}`);
   }
 }

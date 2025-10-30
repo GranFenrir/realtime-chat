@@ -9,10 +9,12 @@
  */
 export interface ChatMessage {
   id: string;
-  text: string;
+  text?: string; // Optional text (required if no image)
   userId: string;
   username: string;
   timestamp: number;
+  imageUrl?: string; // Optional image URL
+  imageData?: string; // Optional base64 image data
 }
 
 /**
@@ -45,6 +47,15 @@ export interface UserJoinedEvent {
 }
 
 /**
+ * Username Changed Event Interface
+ * Represents when a user changes their username
+ */
+export interface UsernameChangedEvent {
+  userId: string;
+  newUsername: string;
+}
+
+/**
  * Socket Events
  * All possible socket event names
  */
@@ -58,6 +69,7 @@ export const SocketEvents = {
   MESSAGE_HISTORY: 'messageHistory',
   ONLINE_USERS: 'onlineUsers',
   USER_TYPING: 'userTyping',
+  USERNAME_CHANGED: 'usernameChanged',
   CONNECT: 'connect',
   DISCONNECT: 'disconnect',
   CONNECT_ERROR: 'connect_error',
@@ -71,4 +83,6 @@ export const ValidationRules = {
   MESSAGE_MAX_LENGTH: 1000,
   USERNAME_MIN_LENGTH: 2,
   USERNAME_MAX_LENGTH: 20,
+  MAX_IMAGE_SIZE: 5 * 1024 * 1024, // 5MB
+  ALLOWED_IMAGE_TYPES: ['image/jpeg', 'image/png', 'image/gif', 'image/webp'],
 } as const;
